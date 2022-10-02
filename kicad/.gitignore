@@ -1,0 +1,7 @@
+/vaillant_heater_control-backups
+*.kicad_prl
+fp-info-cache
+*.pdf
+*.csv
+*.xml
+*.kicad_sch-bak
