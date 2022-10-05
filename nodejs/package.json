@@ -1,0 +1,21 @@
+{
+  "name": "vaillant",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@serialport/bindings": "^9.2.8",
+    "express": "^4.17.2",
+    "mqtt": "^4.3.4",
+    "raspi-soft-pwm": "^6.0.2",
+    "serialport": "^9.2.8"
+  },
+  "devDependencies": {
+    "@types/serialport": "^8.0.2"
+  }
+}

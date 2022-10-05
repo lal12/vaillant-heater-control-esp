@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/moment.js/2.29.1/moment-with-locales.min.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-moment@^1"></script>
+    </head>
+    <body>
+        <canvas id="chart"></canvas>
+        <button style="position: absolute; left: 10; bottom: 10;" id="csv-download">CSV</button>
+    </body>
+    <script>
+        async function fetchData(offs = 0){
+            const jdata = await (await fetch('/json')).text();
+            const jlines = jdata.split('\n').slice(offs).map(ln=>ln.trim()).filter(ln=>ln.length > 0);
+            const data = jlines.map(ln=>JSON.parse(ln));
+           return data;
+        }
+
+        class OnOff extends Chart.LineController{
+            static id = 'onoff';
+       
+            
+
+            // Update the elements in response to new data
+            // @param mode : update mode, core calls this method using any of `'active'`, `'hide'`, `'reset'`, `'resize'`, `'show'` or `undefined`
+            update(mode) {
+
+            }
+
+            draw(){
+                var scale = this.scale;
+                const meta = this.getMeta();
+                console.log(meta)
+                if(!meta.data || meta.data.length == 0 || !meta._dataset.data)
+                    return;
+                const ds = meta._dataset;
+                const ctx = this.chart.ctx;
+                ctx.save();
+                for(let i=0;i<ds.data.length;i++){
+                    const curVal = ds.data[i];
+                    const curPt = meta.data[i];
+
+                    //console.log('asd', curPt)
+                }
+                
+                ctx.strokeStyle = '#ff0000';
+                //ctx.fillRect()
+                ctx.restore();
+            }
+        }
+
+        Chart.register(OnOff)
+
+        async function init(){
+            const info = await (await fetch('/vals')).json();
+            const hide = [
+                'unbek1', 'heizungsteillast', 'st_zuender', 
+                'gfa_stoer', 'stb_abschal', 'korr_aussentemp', 'pumpenachlauf_heizen',
+                'heizungsteillast', 'ruecklauftemp.1', 'ruecklauftemp.2', 'vorlauftemp.1',
+                'aussentemp.1', 'drehzahl_soll', 'drehzahl_ist'
+            ];
+            const colors = ['#003f5c', '#665191', '#d45087', '#f95d6a', '#ff7c43', 'yellow', 'green', 'grey', 'red', '#ff00ff'];
+            let datasets = info.flatMap((info, ci)=>{
+                const n = info.id;
+                if(hide.includes(info.id))
+                    return [];
+                const multi = info.count > 1;
+                return Array(info.count).fill(0).map((_,i)=>i).filter(i=>!hide.includes(info.id+'.'+i)).map(i=>({
+                    label: info.name + (multi ? ' ' + (i+1) : ''),
+                    data: [],
+                    _index: [ci, i],
+                    _id: info.id,
+                    fill: false,
+                    //type: ['sommerwinter', 'st_raumtherm', 'st_gasventil', 'st_pumpe_ext'].includes(info.id) ? 'line' : 'onoff',
+                    //yAxisID: ['sommerwinter', 'st_raumtherm', 'st_gasventil', 'st_pumpe_ext'].includes(info.id) ? 'right' : 'left'
+                    //type: info.id=='sommerwinter' ? 'onoff' : 'line'
+                }))
+            });
+            datasets = datasets.map((d,i)=>({...d, borderColor: colors[i], backgroundColor: colors[i]}));
+            
+            const chart = new Chart(document.getElementById('chart'), {
+                type: 'line',
+                data: {
+                    labels: [],
+                    datasets
+                },
+                options:{
+                    plugins: {
+                        tooltips: {
+                            enabled: true,
+                        }
+                    },
+                    responsive: true,
+                    scales: {
+                        xAxis: {
+                            type: "time",
+                            time: { displayFormats: { minute: "HH:mm" } },
+                            display: true,
+                        },
+                        yAxes: {
+                            display: true,
+                            position: 'left',
+                            type: 'linear'
+                        },
+                        yState1: {
+                            id: 'yState1',
+                            position: 'right',
+                            display: false,
+                            y: -30
+                        },
+                    },
+                    pointRadius: 1,
+                    borderWidth: 2.5
+                }
+            });
+
+            let dataOffs = 0;
+            
+            async function loadData(){
+                const data = await fetchData(dataOffs);
+                dataOffs += data.length;
+                applyData(chart, data);
+                setTimeout(()=>loadData(), 15000);
+            }
+
+            await loadData();
+
+            document.getElementById('csv-download').onclick = ()=>{
+                csvDownload();
+            }
+        }
+
+        async function csvDownload(){
+            const data = await fetchData(dataOffs);
+            alert('TODO')
+        }
+
+        function applyData(chart, data){
+            data.forEach(d=>chart.data.labels.push(new Date(d.time)));
+            chart.data.datasets.forEach((dataset) => {
+                let conv = v=>v;
+                if(dataset._id == 'st_gasventil' || dataset._id == 'st_raumtherm'){
+                    conv = v=>(v==240 ? 1 : 2);
+                }
+                const [a, b] = dataset._index;
+                data.forEach(d=>dataset.data.push(d[a]?.[b] ? conv(d[a][b]) : 0));
+            });
+            chart.update();
+        }
+        init();
+    </script>
+</html>

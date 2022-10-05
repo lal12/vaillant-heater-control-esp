@@ -1,0 +1,12 @@
+[Unit]
+Description=Vaillant monitor
+
+[Service]
+WorkingDirectory=/home/pi/vaillant
+ExecStart=/usr/bin/node main.mjs
+Restart=always
+RuntimeMaxSec=300
+
+
+[Install]
+WantedBy=multi-user.target
