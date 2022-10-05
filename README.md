@@ -18,6 +18,8 @@ A simple config to use the PCB with an ESP32.
 
 ## NodeJS
 
+/nodejs
+
 Small NodeJS application, it reads out the data from the heater.
 It isn't really well made and more intended for temporary and debugging purposes.
 
